@@ -3,6 +3,12 @@
 # Press ⌃R to execute it or replace it with your code.
 # Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
 
+Username =  'michelziv23'
+Password =  'Unicorn5'
+Mail = 'Ido@stelosoties.com'
+
+
+
 
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
