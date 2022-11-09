@@ -3,8 +3,8 @@
 # Press ⌃R to execute it or replace it with your code.
 # Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
 
-Username =  'michelziv23'
-Password =  'Unicorn5'
+Username ='michelziv23'
+Password ='Siscool23'
 Mail = 'Ido@stelosoties.com'
 
 
