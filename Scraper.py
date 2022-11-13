@@ -33,6 +33,7 @@ def find_User_followers(USR):
 
 #Insert Instagram Username to get All Posts and Likes for Each Username
 def Create_User_Folder(name):
+        counter = 0
         try:
             print("stage 2")
             time.sleep(2)
@@ -48,12 +49,13 @@ def Create_User_Folder(name):
         os.chdir(path)
         for post in profile.get_posts():
             print("stage 4")
-            time.sleep(2)
+            time.sleep(8)
             if not post.is_video:
                 # if post.likes >=0:
-                print(post.likes)
                 #instaloader.RateController.handle_429(loader.download_post(post,target = str(round(post.likes/profile.followers,3))))
                 loader.download_post(post,target = str(post.likes))
+                counter +=1
+                print(counter)
 
 
                 print("stage 5")
