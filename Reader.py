@@ -19,12 +19,10 @@ rootdir2 = '/Users/ido/Desktop/CoachAI/InstaBoter/exploringwithvacations'
 
 
 class CustomImageDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, transform=None): #, target_transform=None):
+    def __init__(self, annotations_file, img_dir, transform = None): #, target_transform=None):
         self.img_labels = pd.read_csv(annotations_file)
         self.img_dir = img_dir
-        #self.transform = transform
-        self.transform = transforms.Compose([transforms.ToTensor()])
-        #self.target_transform = target_transform
+        self.transform = transform
 
     def __len__(self):
         return len(self.img_labels)
@@ -79,14 +77,14 @@ def get_jpg_from_main_dir(mainroot):
 
 
 
-get_jpg_from_main_dir(rootdir)
+get_jpg_from_main_dir(rootdir1)
 train_trans = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize((512,640)),
     transforms.ToTensor()
     ])
-root = rootdir + '/pictures'
-DB = CustomImageDataset(annotations_file='Instadata.csv', img_dir= root, transform=train_trans)
+root = rootdir1 + '/pictures'
+DB = CustomImageDataset(annotations_file='Instadata.csv', img_dir= root, transform= train_trans)
 Traindata = DataLoader(dataset = DB ,shuffle= True)
 for i in Traindata:
     print(i)
