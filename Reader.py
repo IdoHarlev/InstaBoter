@@ -76,18 +76,21 @@ def get_jpg_from_main_dir(mainroot):
 
 
 
+#Choose the profile root you want to explore:
 
-get_jpg_from_main_dir(rootdir1)
+#Get all pictures into folders by likes and one combined folder called "pictures"
+get_jpg_from_main_dir(rootdir)
 train_trans = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize((512,640)),
     transforms.ToTensor()
     ])
-root = rootdir1 + '/pictures'
+
+#load the data into Torch
+root = rootdir + '/pictures'
 DB = CustomImageDataset(annotations_file='Instadata.csv', img_dir= root, transform= train_trans)
 Traindata = DataLoader(dataset = DB ,shuffle= True)
-for i in Traindata:
-    print(i)
+
 
 
 
