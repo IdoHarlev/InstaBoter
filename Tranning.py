@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import random_split
 from torchvision.transforms import transforms
 import Reader
-import Reader as rd
+
 
 class LitModel(pl.LightningModule):
     def __init__(self):
@@ -19,11 +19,18 @@ class LitModel(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        print(loss)
+        self.log('train_loss', loss)
         return loss
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
+    def validation_step (self, val_batch, batch_idx):
+        x, y = val_batch
+        x = x.view(x.size(0), -1)
+        z = self.encoder(x)
+        x_hat = self.decoder(z)
+        loss = F.mse_loss(x_hat, x)
+        self.log('val_loss', loss)
 
 
 root = Reader.rootdir
@@ -43,5 +50,5 @@ mnist_train, mnist_val = random_split(DB, [50, 10])
 
 model = LitModel()
 
-trainer = pl.Trainer(accelerator= 'cpu', precision=16, limit_train_batches=0.5)
+trainer = pl.Trainer(accelerator= 'auto', precision= 16)
 trainer.fit(model, mnist_train,mnist_val)
