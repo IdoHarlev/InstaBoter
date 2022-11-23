@@ -5,50 +5,69 @@ import torch
 from torch.utils.data import random_split
 from torchvision.transforms import transforms
 import Reader
+from torch.utils.data import Dataset, DataLoader
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.callbacks.progress import TQDMProgressBar
 
 
 class LitModel(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, image_shape = (3,28,28), hidden_units = (32,16)):
         super().__init__()
-        self.l1 = nn.Linear(28 * 28, 10)
+        self.model = nn.Linear(3,128,128)
+
 
     def forward(self, x):
-        return torch.relu(self.l1(x.view(x.size(0), -1)))
+        X = x.view(x.size(0), -1)
+        print(x.shape)
+        X = self.model(x)
 
-    def training_step(self, batch, batch_idx):
+        return x
+
+
+
+    def training_step(self, batch, batch_nb):
         x, y = batch
-        y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
-        self.log('train_loss', loss)
+        loss = F.cross_entropy(self(x), y)
         return loss
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
-    def validation_step (self, val_batch, batch_idx):
+    '''def validation_step (self, val_batch, batch_idx):
         x, y = val_batch
         x = x.view(x.size(0), -1)
         z = self.encoder(x)
         x_hat = self.decoder(z)
         loss = F.mse_loss(x_hat, x)
-        self.log('val_loss', loss)
+        self.log('val_loss', loss)'''
 
 
 root = Reader.rootdir
 Reader.get_jpg_from_main_dir(root)
-train_trans = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Resize((512,640)),
-    transforms.ToTensor()
+train_trans = transforms.Compose([transforms.ToTensor(),
+    #transforms.ToPILImage(),
+    transforms.Resize((128,128))
+
     ])
 
 #load the data into Torch
 root1 = root + '/pictures'
 DB = Reader.CustomImageDataset(annotations_file='Instadata.csv', img_dir= root1, transform= train_trans)
-print(len(DB))
-mnist_train, mnist_val = random_split(DB, [50, 10])
+Traindata = DataLoader(dataset = DB ,shuffle= True)
+#mnist_train, mnist_val = random_split(Traindata, [50, 10])
 
-
+'''\
 model = LitModel()
 
-trainer = pl.Trainer(accelerator= 'auto', precision= 16)
-trainer.fit(model, mnist_train,mnist_val)
+trainer = Trainer(
+    accelerator="auto",
+    devices=1 if torch.cuda.is_available() else None,  # limiting got iPython runs
+    max_epochs=3,
+    callbacks=[TQDMProgressBar(refresh_rate=20)],
+)
+trainer.fit(model, Traindata)#mnist_train,mnist_val)
+'''
+
+net = LitModel()
+x = torch.randn(1, 3, 28, 28)
+out = net(x)
+print(out.shape)
