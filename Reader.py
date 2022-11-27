@@ -62,38 +62,36 @@ class LitModel(pl.LightningModule):
         self.conv1 = conv_block(3, 16)
         self.conv2 = conv_block(16, 32)
         self.conv3 = conv_block(32, 64)
-
-        self.ln1 = nn.Linear(64 * 26 * 26, 16)
+        self.shaper = nn.Flatten()
         self.relu = nn.ReLU()
-        self.batchnorm = nn.BatchNorm1d(16)
+        self.ln1 = nn.Linear(64, 16)
+        #self.batchnorm = nn.BatchNorm1d(16)
         self.dropout = nn.Dropout2d(0.5)
         self.ln2 = nn.Linear(16, 5)
-
         self.ln4 = nn.Linear(5, 10)
         self.ln5 = nn.Linear(10, 10)
         self.ln6 = nn.Linear(10, 5)
-        self.ln7 = nn.Linear(10, 1)
+        self.ln7 = nn.Linear(5, 1)
 
     def forward(self, img):
         img = self.conv1(img)
         img = self.conv2(img)
         img = self.conv3(img)
-        x = img.reshape(img.shape[0], -1)
-        '''
-        img = self.ln1(img)
+        img = self.shaper(img)
         img = self.relu(img)
-        img = self.batchnorm(img)
+        img = self.ln1(img)
+        #img = self.batchnorm(img)
         img = self.dropout(img)
         img = self.ln2(img)
         img = self.relu(img)
-    
 
+        '''
         x = torch.cat((img), dim=1)
         x = self.relu(x)
-
+    '''
         x = img.reshape(img.shape[0], -1)
-        '''
-        return x #self.ln7(x)
+
+        return self.ln7(x)
 
 
 
@@ -157,7 +155,7 @@ def conv_block(input_size, output_size):
 #Get all pictures into folders by likes and one combined folder called "pictures"
 get_jpg_from_main_dir(rootdir)
 train_trans = transforms.Compose([transforms.ToTensor(),
-    transforms.Resize((128,128))
+    transforms.Resize((28,28))
 
     ])
 
