@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 from torchvision.transforms import transforms
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -52,7 +52,7 @@ class LitModel(pl.LightningModule):
     '''
 
     def __init__(
-            self, lr: float = 1e-3, num_workers: int = 4, batch_size: int = 10,
+            self, lr: float = 0.001 , num_workers: int = 1, batch_size: int = 10,
     ):
         super().__init__()
         self.lr = lr
@@ -65,7 +65,7 @@ class LitModel(pl.LightningModule):
         self.shaper = nn.Flatten()
         self.relu = nn.ReLU()
         self.ln1 = nn.Linear(64, 16)
-        #self.batchnorm = nn.BatchNorm1d(16)
+        self.batchnorm = nn.BatchNorm1d(16)
         self.dropout = nn.Dropout2d(0.5)
         self.ln2 = nn.Linear(16, 5)
         self.ln4 = nn.Linear(5, 10)
@@ -78,9 +78,9 @@ class LitModel(pl.LightningModule):
         img = self.conv2(img)
         img = self.conv3(img)
         img = self.shaper(img)
-        img = self.relu(img)
         img = self.ln1(img)
-        #img = self.batchnorm(img)
+        img = self.relu(img)
+        img = self.batchnorm(img)
         img = self.dropout(img)
         img = self.ln2(img)
         img = self.relu(img)
@@ -109,6 +109,60 @@ class LitModel(pl.LightningModule):
 
         tensorboard_logs = {"train_loss": loss}
         return {"loss": loss, "log": tensorboard_logs}
+
+    def validation_step(self, batch, batch_idx):
+        image, y = batch
+
+        criterion = torch.nn.L1Loss()
+        y_pred = torch.flatten(self(image))
+        y_pred = y_pred.double()
+
+        val_loss = criterion(y_pred, y)
+
+
+        return {"val_loss": val_loss}
+
+    def validation_epoch_end(self, outputs):
+        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
+        tensorboard_logs = {"val_loss": avg_loss}
+        return {"val_loss": avg_loss, "log": tensorboard_logs}
+
+    def test_step(self, batch, batch_idx):
+        image, y = batch
+
+        criterion = torch.nn.L1Loss()
+        y_pred = torch.flatten(self(image))
+        y_pred = y_pred.double()
+
+        test_loss = criterion(y_pred, y)
+
+        return {"test_loss": test_loss}
+
+    def test_epoch_end(self, outputs):
+        avg_loss = torch.stack([x["test_loss"] for x in outputs]).mean()
+        logs = {"test_loss": avg_loss}
+        return {"test_loss": avg_loss, "log": logs, "progress_bar": logs}
+
+    def setup(self, stage):
+        image_data = DB = CustomImageDataset(annotations_file='Instadata.csv', img_dir= root, transform= train_trans)
+
+        train_size = int(0.80 * len(image_data))
+        val_size = int((len(image_data) - train_size) / 2)
+        test_size = int((len(image_data) - train_size) / 2)
+
+        self.train_set, self.val_set, self.test_set = random_split(image_data, (train_size, val_size, test_size))
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=(self.lr))
+
+    def train_dataloader(self):
+        return DataLoader(self.train_set, batch_size=self.batch_size)
+
+    def val_dataloader(self):
+        return DataLoader(self.val_set, batch_size=self.batch_size)
+
+    def test_dataloader(self):
+        return DataLoader(self.test_set, batch_size=self.batch_size)
 
 def get_jpg_from_main_dir(mainroot):
      with open('Instadata.csv', 'w', encoding='UTF8') as f:
@@ -162,20 +216,27 @@ train_trans = transforms.Compose([transforms.ToTensor(),
 #load the data into Torch
 root = rootdir + '/pictures'
 batch_size = 10
+
+
+'''
 DB = CustomImageDataset(annotations_file='Instadata.csv', img_dir= root, transform= train_trans)
-Traindata = DataLoader(dataset = DB ,shuffle= True)
+
+train_size = int(0.80 * len(DB))
+val_size = int((len(DB) - train_size) / 2)
+test_size = int((len(DB) - train_size) / 2)
 
 
-
+Traindata = DataLoader(dataset = DB, batch_size= batch_size ,shuffle= True)
+'''
 
 model = LitModel()
 
 logger = TensorBoardLogger("lightning_logs", name="multi_input")
-early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=5000, patience=7, verbose=False, mode="min")
+early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=100, patience=7, verbose=False, mode="min")
 
 
 
-trainer = Trainer(accelerator="cpu", devices=1, logger = logger)
+trainer = Trainer(accelerator="cpu", devices=1, logger = logger, check_val_every_n_epoch= 10, max_epochs= 500)
 
-trainer.fit(model, Traindata)#mnist_train,mnist_val)
+trainer.fit(model), #Traindata)#mnist_train,mnist_val)
 
